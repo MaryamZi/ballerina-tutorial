@@ -9,6 +9,24 @@ GET  http://localhost:9090/orders?date=2026-07-29
 POST http://localhost:9091/reports/summaries
 ```
 
+## Sample response
+
+```json
+[
+  {
+    "id": 1001,
+    "date": "2026-07-29",
+    "customerId": "CUST-42",
+    "customerName": "Alice Perera",
+    "status": "COMPLETED",
+    "items": [
+      { "productId": "SKU-1", "name": "Widget", "quantity": 2, "unitPrice": 19.99 }
+    ],
+    "total": 39.98
+  }
+]
+```
+
 ## Data mapping
 
 ```
