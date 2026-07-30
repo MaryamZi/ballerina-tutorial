@@ -9,6 +9,7 @@
 | 3 | [`3-generated-client`](3-generated-client) | Same as sample 1, but the HTTP client and record types are generated from an OpenAPI spec. |
 | 4 | [`4-tests`](4-tests) | Sample 2 refactored for testability — unit-test the transform, mock the client for the fetch step. |
 | 5 | [`5-connector`](5-connector) | Send an email via the `ballerinax/googleapis.gmail` connector, pointed at a local mock. |
+| 6 | [`6-service`](6-service) | Integration as an API — expose an HTTP service with GET list (category filter), GET by id, and POST to create. |
 
 ## Mock backends
 
