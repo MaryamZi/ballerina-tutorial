@@ -8,13 +8,15 @@
 | 2 | [`2-automation`](2-automation) | Read → transform → POST. |
 | 3 | [`3-generated-client`](3-generated-client) | Same as sample 1, but the HTTP client and record types are generated from an OpenAPI spec. |
 | 4 | [`4-tests`](4-tests) | Sample 2 refactored for testability — unit-test the transform, mock the client for the fetch step. |
+| 5 | [`5-connector`](5-connector) | Send an email via the `ballerinax/googleapis.gmail` connector, pointed at a local mock. |
 
 ## Mock backends
 
-`backends/` holds two mock services that the samples talk to:
+`backends/` holds mock services that the samples talk to:
 
 - `backends/orders` — serves orders (port 9090). `GET /orders?date=YYYY-MM-DD` returns a list, `GET /orders/{orderId}` returns one.
 - `backends/reports` — accepts summaries (port 9091). `POST /reports/summaries` logs each summary it receives.
+- `backends/gmail-mock` — impersonates the parts of Gmail used by sample 5 (port 9092). `POST /users/me/messages/send` accepts a message, `POST /oauth2/token` returns a canned token for the connector's refresh flow.
 
 Start each with `bal run` from its directory.
 
