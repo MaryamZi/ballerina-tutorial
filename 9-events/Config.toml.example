@@ -1,0 +1,3 @@
+bootstrapServers = "localhost:9092"
+topic = "product-events"
+groupId = "product-events-consumer"
