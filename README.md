@@ -10,6 +10,7 @@
 | 4 | [`4-tests`](4-tests) | Sample 2 refactored for testability — unit-test the transform, mock the client for the fetch step. |
 | 5 | [`5-connector`](5-connector) | Send an email via the `ballerinax/googleapis.gmail` connector, pointed at a local mock. |
 | 6 | [`6-service`](6-service) | Integration as an API — expose an HTTP service with GET list (category filter), GET by id, and POST to create. |
+| 7 | [`7-database`](7-database) | Same as sample 6, but backed by Postgres via `ballerinax/postgresql`. Postgres runs via `docker-compose`. |
 
 ## Mock backends
 
