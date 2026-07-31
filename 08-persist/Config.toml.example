@@ -1,0 +1,6 @@
+[products_persist.products]
+host = "localhost"
+port = 5432
+user = "tutorial"
+database = "products"
+password = "tutorial"

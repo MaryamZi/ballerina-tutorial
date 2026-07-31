@@ -1,0 +1,2 @@
+ordersEP = "http://localhost:9090"
+reportsEP = "http://localhost:9091"

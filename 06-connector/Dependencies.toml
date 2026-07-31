@@ -95,10 +95,6 @@ dependencies = [
 	{org = "ballerina", name = "time"},
 	{org = "ballerina", name = "url"}
 ]
-modules = [
-	{org = "ballerina", packageName = "http", moduleName = "http"},
-	{org = "ballerina", packageName = "http", moduleName = "http.httpscerr"}
-]
 
 [[package]]
 org = "ballerina"
@@ -107,6 +103,9 @@ version = "1.8.1"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.value"}
+]
+modules = [
+	{org = "ballerina", packageName = "io", moduleName = "io"}
 ]
 
 [[package]]
@@ -213,9 +212,6 @@ dependencies = [
 	{org = "ballerina", name = "lang.value"},
 	{org = "ballerina", name = "observe"}
 ]
-modules = [
-	{org = "ballerina", packageName = "log", moduleName = "log"}
-]
 
 [[package]]
 org = "ballerina"
@@ -308,15 +304,36 @@ modules = [
 ]
 
 [[package]]
-org = "tutorial"
-name = "reports_backend"
-version = "0.1.0"
+org = "ballerinax"
+name = "googleapis.gmail"
+version = "4.2.0"
 dependencies = [
 	{org = "ballerina", name = "http"},
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "lang.array"},
+	{org = "ballerina", name = "lang.runtime"},
 	{org = "ballerina", name = "log"},
+	{org = "ballerina", name = "os"},
+	{org = "ballerina", name = "url"},
+	{org = "ballerina", name = "uuid"},
 	{org = "ballerinai", name = "observe"}
 ]
 modules = [
-	{org = "tutorial", packageName = "reports_backend", moduleName = "reports_backend"}
+	{org = "ballerinax", packageName = "googleapis.gmail", moduleName = "googleapis.gmail"},
+	{org = "ballerinax", packageName = "googleapis.gmail", moduleName = "googleapis.gmail.mock"},
+	{org = "ballerinax", packageName = "googleapis.gmail", moduleName = "googleapis.gmail.oas"}
+]
+
+[[package]]
+org = "tutorial"
+name = "connector"
+version = "0.1.0"
+dependencies = [
+	{org = "ballerina", name = "io"},
+	{org = "ballerinai", name = "observe"},
+	{org = "ballerinax", name = "googleapis.gmail"}
+]
+modules = [
+	{org = "tutorial", packageName = "connector", moduleName = "connector"}
 ]
 

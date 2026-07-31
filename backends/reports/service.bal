@@ -1,7 +1,7 @@
 import ballerina/http;
 import ballerina/log;
 
-public type Item record {|
+public type OrderItem record {|
     string name;
     int quantity;
 |};
@@ -10,7 +10,7 @@ public type OrderSummary record {|
     string orderRef;
     string customer;
     decimal amount;
-    Item[] items;
+    OrderItem[] items;
     string status;
 |};
 
