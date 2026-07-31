@@ -2,9 +2,18 @@
 
 Two data-mapper transformations, no HTTP. Sample records are hardcoded so the focus stays on the mapping. Each transformation is an expression-bodied function — buildable in VS Code with the Ballerina **data mapper**.
 
-Use the following definitions and values.
+## Steps
 
-```bal
+### 1. Create the Ballerina package
+
+```
+bal new mapper
+cd mapper
+```
+
+### 2. Define the types and sample values
+
+```ballerina
 type LineItem record {|
     string productId;
     string name;
@@ -69,7 +78,7 @@ final Customer sampleCustomer = {
 };
 ```
 
-## Mapping A — `Customer → NotificationTarget`
+### 3. Build mapping A — `Customer → NotificationTarget`
 
 Single input. Combines `firstName` and `lastName` into a single display name, and passes the id and email through.
 
@@ -80,7 +89,15 @@ firstName + lastName     ── concat ───────►  name
 email                    ── direct ───────►  email
 ```
 
-## Mapping B — `(Order, Customer) → EnrichedOrder`
+```ballerina
+function toNotificationTarget(Customer customer) returns NotificationTarget => {
+
+};
+```
+
+Use the data mapper to wire the fields, or type the function by hand.
+
+### 4. Build mapping B — `(Order, Customer) → EnrichedOrder`
 
 Two inputs joined into one output. The caller supplies both — the join by `customerId` is implicit at the call site.
 
@@ -94,10 +111,19 @@ Order.items                  ── map ─────────►  items[] 
 Order.status                 ── direct ──────►  status
 ```
 
-## Run
+```ballerina
+function toEnrichedOrder(Order 'order, Customer customer) returns EnrichedOrder => {
+
+};
+```
+
+### 5. Call both from `main` and print
+
+Call `toNotificationTarget(sampleCustomer)` and `toEnrichedOrder(sampleOrder, sampleCustomer)`, print the results.
+
+### 6. Run
 
 ```
-cd 05-mapper
 bal run
 ```
 

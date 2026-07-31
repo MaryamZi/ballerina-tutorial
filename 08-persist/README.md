@@ -1,18 +1,31 @@
 # 8. Persist — code-generated data access
 
-Same job as sample 7, but the data access layer is **generated** by `bal persist` from a record definition. No hand-written SQL, no `sql:ParameterizedQuery` — resource-style calls against a typed client (`dbClient->/products`, `dbClient->/products/[id]`, `dbClient->/products.post([...])`). `main.bal` fetches one product; the extended example below wraps the same client in a full CRUD HTTP service.
+Same read as sample 7, but the data access layer is **generated** by `bal persist` from a record definition. No hand-written SQL, no `sql:ParameterizedQuery` — resource-style calls against a typed client (`dbClient->/products`, `dbClient->/products/[id]`, `dbClient->/products.post([...])`). `main.bal` fetches one product; the extended example at the end wraps the same client in a full CRUD HTTP service.
 
-## Why persist vs raw `sql:`
+## Steps
 
-Sample 7 works — the trade-off is what you write and maintain:
+### 1. Start Postgres
 
-- **Typed CRUD, no query strings.** The generated client exposes `->/products`, `->/products/[id]`, `->/products.post(...)`, `.put(...)`, `.delete()` — no SQL to write, no interpolation to get right.
-- **Swap datastores from the same model.** `--datastore postgresql` today, `--datastore mysql` (or `mssql`, `redis`, `inmemory` for tests, ...) tomorrow — regenerate, no code changes.
-- **Schema evolution stays honest.** Change the model, rebuild, and both the client and `script.sql` update together.
+```
+cd 08-persist
+docker compose up -d
+```
 
-## Data model
+Runs the seeded `Product` table from `init.sql`.
 
-Defined once in `persist/model.bal`:
+### 2. Create the package and initialize persist
+
+```
+bal new products_persist
+cd products_persist
+bal persist add --datastore postgresql --module products
+```
+
+`bal persist add` writes a `[[tool.persist]]` block into `Ballerina.toml` and creates an empty `persist/model.bal`.
+
+### 3. Define the data model
+
+In `persist/model.bal`:
 
 ```ballerina
 import ballerina/persist as _;
@@ -31,26 +44,11 @@ type Product record {|
 - `readonly` marks the primary key.
 - `@sql:Decimal {precision: [10, 2]}` pins the SQL column type so prices render as `19.99`, not `19.990000000000000000000000000000` (the default is `DECIMAL(65,30)`).
 
-## Set up
+`bal build` regenerates the client on every build. Generated code lives in `generated/products/`.
 
-```
-bal new products_persist
-cd products_persist
-bal persist add --datastore postgresql --module products
-```
+### 4. Configure the connection
 
-`bal persist add` writes a `[[tool.persist]]` block into `Ballerina.toml` and creates an empty `persist/model.bal`. Fill in the model above, then `bal build` — the tool integration generates the client on every build.
-
-Generated code lives under `generated/products/`:
-
-- `persist_client.bal` — the typed CRUD client
-- `persist_types.bal` — `Product`, `ProductInsert`, `ProductUpdate` records
-- `persist_db_config.bal` — `configurable` variables the client uses (`host`, `port`, `user`, `database`, `password`)
-- `script.sql` — the SQL schema for reference (mirrored in `init.sql`)
-
-## Config.toml
-
-The generated `configurable` values live in the `products_persist.products` module — hence the section header:
+The generated `configurable` values live in the `products_persist.products` module, so the section header uses that path:
 
 ```toml
 [products_persist.products]
@@ -63,16 +61,20 @@ password = "tutorial"
 
 Copy `Config.toml.example` to `Config.toml`.
 
-## Run
+### 5. Write `main` using the generated client
 
-Start Postgres (schema + seed baked into `init.sql`):
+```ballerina
+import products_persist.products as store;
 
+final store:Client dbClient = check new;
+
+public function main() returns error? {
+    store:Product product = check dbClient->/products/["SKU-1"];
+    io:println("Fetched: ", product);
+}
 ```
-cd 08-persist
-docker compose up -d
-```
 
-Then:
+### 6. Run
 
 ```
 bal run
@@ -84,11 +86,22 @@ Output:
 Fetched: {"id":"SKU-1","name":"Widget","price":19.99,"stock":120,"category":"TOOLS"}
 ```
 
-## Building it in the flow view
+## Why persist vs raw `sql:`
 
-The same flow constructed visually:
+Sample 7 works — the trade-off is what you write and maintain:
 
-![Persist flow](gifs/persist_flow.gif)
+- **Typed CRUD, no query strings.** The generated client exposes `->/products`, `->/products/[id]`, `->/products.post(...)`, `.put(...)`, `.delete()` — no SQL to write, no interpolation to get right.
+- **Swap datastores from the same model.** `--datastore postgresql` today, `--datastore mysql` (or `mssql`, `redis`, `inmemory` for tests, ...) tomorrow — regenerate, no code changes.
+- **Schema evolution stays honest.** Change the model, rebuild, and both the client and `script.sql` update together.
+
+## Generated code
+
+Under `generated/products/`:
+
+- `persist_client.bal` — the typed CRUD client
+- `persist_types.bal` — `Product`, `ProductInsert`, `ProductUpdate` records
+- `persist_db_config.bal` — the `configurable` variables the client uses (`host`, `port`, `user`, `database`, `password`)
+- `script.sql` — the SQL schema for reference (mirrored in `init.sql`)
 
 ## Client method surface
 
@@ -106,6 +119,12 @@ string[]|persist:Error ids = dbClient->/products.post([product]);
 //   dbClient->/products/[id].put({name: "..."})
 //   dbClient->/products/[id].delete()
 ```
+
+## Building it in the flow view
+
+The same flow constructed visually — no need to type the client call by hand.
+
+![Persist flow](gifs/persist_flow.gif)
 
 ## Extended example — a full CRUD service
 

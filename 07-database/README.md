@@ -1,10 +1,17 @@
 # 7. Database — talk to Postgres
 
-Read a row from a Postgres table using the `ballerinax/postgresql` client. `main.bal` shows the minimum: initialize the client, run one `queryRow`, print the result. The extended example below wraps the same client in an HTTP service with GET / POST endpoints — the shape sample 10 has, backed by real storage.
+Read a row from a Postgres table using the `ballerinax/postgresql` client. `main.bal` shows the minimum: initialize the client, run one `queryRow`, print the result. The extended example at the end wraps the same client in an HTTP service with GET / POST endpoints — the shape sample 10 has, backed by real storage.
 
-## Schema
+## Steps
 
-`init.sql` creates a single table and seeds three rows on first container start:
+### 1. Start Postgres
+
+```
+cd 07-database
+docker compose up -d
+```
+
+`init.sql` runs on first boot and seeds three rows into a `products` table:
 
 ```sql
 CREATE TABLE products (
@@ -16,7 +23,22 @@ CREATE TABLE products (
 );
 ```
 
-## Config.toml
+### 2. Create the Ballerina package
+
+```
+bal new products_db
+```
+
+Import the postgresql client and its driver (the driver import must be present for the JDBC driver to be on the classpath):
+
+```ballerina
+import ballerinax/postgresql;
+import ballerinax/postgresql.driver as _;
+```
+
+### 3. Configure the connection
+
+Copy `Config.toml.example` to `Config.toml`:
 
 ```toml
 dbHost = "localhost"
@@ -26,29 +48,27 @@ dbUser = "tutorial"
 dbPassword = "tutorial"
 ```
 
-## Set up
+### 4. Initialize the client
 
-```
-bal new products_db
-```
-
-Import the postgresql client and its driver:
+Module-level, before `main`:
 
 ```ballerina
-import ballerinax/postgresql;
-import ballerinax/postgresql.driver as _;
+final postgresql:Client dbClient = check new (
+    host = dbHost, port = dbPort, database = dbName,
+    username = dbUser, password = dbPassword
+);
 ```
 
-## Run
+### 5. Run one `queryRow` from `main`
 
-Start Postgres with docker-compose (mounts `init.sql` on first boot):
-
+```ballerina
+Product product = check dbClient->queryRow(
+    `SELECT id, name, price, stock, category FROM products WHERE id = 'SKU-1'`
+);
+io:println("Fetched: ", product);
 ```
-cd 07-database
-docker compose up -d
-```
 
-Then run:
+### 6. Run
 
 ```
 bal run
@@ -65,10 +85,10 @@ Fetched: {"id":"SKU-1","name":"Widget","price":19.99,"stock":120,"category":"TOO
 Three shapes of `sql:` calls:
 
 - `queryRow` — returns a single row, or `sql:NoRowsError` if there's nothing to return. Used above.
-- `query` — returns a `stream<Product, sql:Error?>` for lists. Consume with a query expression: e.g., `from Product p in resultStream select p`.
+- `query` — returns a `stream<Product, sql:Error?>` for lists. Consume with a query expression: `from Product p in resultStream select p`.
 - `execute` — for `INSERT` / `UPDATE` / `DELETE`, returns an `sql:ExecutionResult`.
 
-Ballerina builds a parameterized query, no string concatenation:
+Ballerina builds a parameterized query — no string concatenation:
 
 ```ballerina
 dbClient->query(`SELECT ... WHERE category = ${category}`);
@@ -76,7 +96,7 @@ dbClient->query(`SELECT ... WHERE category = ${category}`);
 
 ## Extended example — a full CRUD service
 
-The same client wrapped in an HTTP service with list/filter/get-by-id/create endpoints. This is essentially sample 10 with Postgres behind it.
+The same client wrapped in an HTTP service with list/filter/get-by-id/create endpoints. Essentially sample 10 with Postgres behind it.
 
 ```ballerina
 import ballerina/http;

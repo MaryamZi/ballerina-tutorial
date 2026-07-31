@@ -1,37 +1,17 @@
-# 10. Service — expose an HTTP API (Integration as an API)
+# 10. Service — expose an HTTP API
 
-An HTTP service that manages products in memory. Exposes list/filter, get-by-id, and create endpoints. Same shape as the mock services under `backends/`, but simpler — a good first look at writing a Ballerina service.
+An HTTP service that manages products in memory. Exposes list/filter, get-by-id, and create endpoints — a first look at writing a Ballerina service.
 
-## Endpoints
+## Steps
 
-```
-GET  http://localhost:9093/products
-GET  http://localhost:9093/products?category=<TOOLS|ELECTRONICS|HARDWARE>
-GET  http://localhost:9093/products/{productId}
-POST http://localhost:9093/products
-```
-
-- `category` on the list endpoint is optional; invalid values return 400 (the listener rejects strings that aren't in the `ProductCategory` enum).
-- `GET /products/{productId}` returns 404 for unknown ids.
-- `POST /products` returns 201 on success, 409 if `id` already exists.
-
-## Sample data
-
-Seeded on startup — matches the `productId` values used in the orders backend:
-
-```
-SKU-1  Widget    19.99  stock 120   TOOLS
-SKU-2  Gadget   149.99  stock  45   ELECTRONICS
-SKU-3  Sprocket   5.50  stock 500   HARDWARE
-```
-
-## Set up
+### 1. Create the Ballerina package
 
 ```
 bal new products_service
+cd products_service
 ```
 
-Add the following types and variables.
+### 2. Define the types and seed data
 
 ```ballerina
 public enum ProductCategory {
@@ -57,24 +37,40 @@ final map<Product> products = {
 };
 ```
 
-## Run
+### 3. Write the service
+
+`service /products on new http:Listener(port)` with three resources:
+
+- `resource function get .(ProductCategory? category = ())` — list, with an optional category filter. Invalid `category` values are rejected by the listener with 400.
+- `resource function get [string productId]()` — 200 with the product, or 404.
+- `resource function post .(Product product)` — 201 on success, 409 if `id` already exists.
+
+### 4. Run
 
 ```
-cd 10-service
 bal run
 ```
 
-## Exercise the API
+### 5. Exercise the API
 
-`api.hurl` in this directory drives each endpoint with the expected status code. Install [hurl](https://hurl.dev/), then:
+`api.hurl` drives every endpoint with the expected status code. Install [hurl](https://hurl.dev/), then:
 
 ```
 hurl --test api.hurl
 ```
 
-## Generate the OpenAPI spec
+## Endpoints
 
-Once the service compiles, produce an OAS document from it:
+```
+GET  http://localhost:9093/products
+GET  http://localhost:9093/products?category=<TOOLS|ELECTRONICS|HARDWARE>
+GET  http://localhost:9093/products/{productId}
+POST http://localhost:9093/products
+```
+
+## Generate an OpenAPI spec
+
+Once the service compiles:
 
 ```
 bal openapi -i service.bal --json

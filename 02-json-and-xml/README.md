@@ -1,36 +1,59 @@
-# 2. JSON and XML — other wire formats
+# 2. Work with JSON and XML directly
 
-Sample 1 used typed records, which validates and binds the entire payload in one go. Alternatively, you can work with it directly as `json`.
+Sample 1 used typed records — the entire payload validated and bound in one step. This sample shows the alternatives: treat the response as raw `json`, or as `xml` when the wire format is XML.
 
-This sample demonstrates the `json` and `xml` types.
+## Steps
 
-- The **JSON** section hits the same orders endpoint as sample 1, but binds the response as raw `json` and picks fields out with `check`.
-- The **XML** section hits a customers backend that responds with XML. Ballerina has a first-class `xml` type with XPath-style navigation.
-
-The `ballerina/data.jsondata` and `ballerina/data.xmldata` libraries also support JSONPath and XPath.
-
-## Endpoints
+### 1. Start the backends
 
 ```
-GET http://localhost:9090/orders/1001                (JSON)
-GET http://localhost:9096/customers/CUST-42          (XML)
+cd backends/orders && bal run       # terminal 1 — port 9090, JSON
+cd backends/customers && bal run    # terminal 2 — port 9096, XML
 ```
 
-## XML
-
-`customer/<id>` navigates to `<id>` children. `.get(0)` picks the first match, and `.data()` returns the text content. VS Code's **Paste XML as Record** generates a matching record type for record binding instead.
-
-## Run
+### 2. Create the Ballerina package
 
 ```
-cd backends/orders && bal run       # terminal 1
-cd backends/customers && bal run    # terminal 2
-cd 02-json-and-xml && bal run       # terminal 3
+bal new json_and_xml
+cd json_and_xml
 ```
 
-## Expected output
+### 3. Fetch as JSON
+
+In `main`, hit `GET /orders/1001`, bind the response to `json`, and pull out fields with `check`:
+
+```ballerina
+json orderJson = check ordersClient->/orders/[1001];
+int id = check orderJson.id;
+string name = check orderJson.customerName;
+```
+
+Every access is checked at runtime — no compile-time guarantee that `orderJson.id` is an `int`.
+
+### 4. Fetch as XML
+
+Hit `GET /customers/CUST-42` on the customers backend. Ballerina's `xml` type supports XPath-style navigation (`/<id>`, `.get(0)`, `.data()`):
+
+```ballerina
+xml customer = check customersClient->/customers/["CUST-42"];
+xml:Element idElement = customer/<id>.get(0);
+```
+
+VS Code's **Paste XML as Record** generates a matching record type if you'd rather bind the XML to a record.
+
+### 5. Run
+
+```
+bal run
+```
+
+Expected output:
 
 ```
 Order 1001 for Customer Alice Perera of Total value $39.98
 Customer details: ID CUST-42, Name Alice Perera
 ```
+
+## JSONPath and XPath
+
+The `ballerina/data.jsondata` and `ballerina/data.xmldata` libraries support JSONPath and XPath too.

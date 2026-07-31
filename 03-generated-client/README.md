@@ -1,16 +1,16 @@
 # 3. Generated client — from an OpenAPI spec
 
-Same job as sample 1, but the HTTP client and every record type come from an OpenAPI spec — no hand-written records, no hand-written HTTP calls. 
+The same fetch as sample 1, with the HTTP client and every record type generated from an OpenAPI spec. No hand-written records, no hand-written HTTP calls — change the spec, regenerate, and the compiler flags any code that no longer matches.
 
-## Endpoint
+## Steps
+
+### 1. Start the orders backend
 
 ```
-GET http://localhost:9090/orders?date=2026-07-29
+cd backends/orders && bal run
 ```
 
-## Set up
-
-Start from an empty package:
+### 2. Create the package and the client submodule
 
 ```
 bal new automation
@@ -25,33 +25,33 @@ rm modules/orders_client/orders_client.bal
 rm -rf modules/orders_client/tests
 ```
 
-Produce the OpenAPI spec from the orders backend (once, then commit):
+### 3. Generate the client
+
+`orders_openapi.json` is already committed in this directory. Feed it to the client generator:
 
 ```
-cd ../backends/orders
-bal openapi -i service.bal --json
-mv orders_openapi.json ../../03-generated-client/
-```
-
-Generate the client into the submodule:
-
-```
-cd ../../03-generated-client
 bal openapi -i orders_openapi.json --mode client -o modules/orders_client
 ```
 
-## Using the generated client
+`modules/orders_client/` now contains the typed `Client` and record definitions.
 
-`orders:Client`, `orders:Order` — all types come from the generated `modules/orders_client/`. When the spec changes, regenerate; the compiler flags any code that no longer matches.
+### 4. Write `main` using the generated client
 
-## Run
+Import the submodule and fetch orders — no local records needed:
+
+```ballerina
+import automation.orders_client as orders;
+```
+
+Use `orders:Client` and `orders:Order[]`.
+
+### 5. Run
 
 ```
-cd backends/orders && bal run       # terminal 1
-cd 03-generated-client && bal run   # terminal 2
+bal run
 ```
 
-## Expected output
+Expected output:
 
 ```
 Order 1001 for Customer Alice Perera of Total value $39.98

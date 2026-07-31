@@ -2,30 +2,25 @@
 
 A Ballerina service that subscribes to a Kafka topic (`product-events`) and logs each message it receives. The payload is bound to a typed `ProductEvent` record — no manual JSON parsing.
 
-## Topic and message shape
+## Steps
+
+### 1. Start Kafka
 
 ```
-Topic: product-events
+cd 12-events
+docker compose up -d
 ```
 
-Each message is a JSON object:
+Single-container KRaft mode — no ZooKeeper.
 
-```json
-{
-  "eventType": "CREATED",
-  "productId": "SKU-4",
-  "name": "Bracket",
-  "price": 8.50
-}
-```
-
-## Set up
+### 2. Create the Ballerina package
 
 ```
 bal new events_consumer
+cd events_consumer
 ```
 
-Implement the consumer service using configurables for `bootstrapServers`, `topic`, and `groupId`.
+### 3. Configure the consumer
 
 Copy `Config.toml.example` to `Config.toml`:
 
@@ -35,24 +30,40 @@ topic = "product-events"
 groupId = "product-events-consumer"
 ```
 
-## Run
+### 4. Define the event record
 
-Start Kafka (single-container KRaft mode — no ZooKeeper):
-
+```ballerina
+public type ProductEvent record {|
+    string eventType;
+    string productId;
+    string name;
+    decimal price;
+|};
 ```
-cd 12-events
-docker compose up -d
+
+### 5. Attach the consumer service to a `kafka:Listener`
+
+```ballerina
+service kafka:Service on new kafka:Listener(bootstrapServers, {groupId, topics: topic}) {
+    remote function onConsumerRecord(ProductEvent[] events) returns error? {
+        foreach ProductEvent event in events {
+            log:printInfo("Received event", eventType = event.eventType, productId = event.productId);
+        }
+    }
+}
 ```
 
-Then run the consumer:
+`onConsumerRecord` receives an **array** — Kafka delivers records in batches. Each element is deserialized to `ProductEvent`; malformed messages are skipped (`autoSeekOnValidationFailure` defaults to `true`).
+
+### 6. Run the consumer
 
 ```
 bal run
 ```
 
-It stays in the foreground waiting for messages.
+Stays in the foreground waiting for messages.
 
-## Publish a test event
+### 7. Publish a test event
 
 In a second terminal, pipe a JSON line into the container's console producer:
 
@@ -65,10 +76,8 @@ echo '{"eventType":"CREATED","productId":"SKU-9","name":"Anvil","price":42.50}' 
 Consumer log:
 
 ```
-time=2026-07-31T20:15:14.604+05:30 level=INFO module=tutorial/events_consumer message="Received event" eventType="CREATED" productId="SKU-9" name="Anvil" price=42.50
+Received event  eventType="CREATED"  productId="SKU-9"  name="Anvil"  price=42.50
 ```
-
-`onConsumerRecord` receives an **array** — Kafka delivers records in batches. The record is deserialized to `ProductEvent[]` automatically; malformed messages are skipped (`autoSeekOnValidationFailure` defaults to `true`).
 
 ## Offsets
 

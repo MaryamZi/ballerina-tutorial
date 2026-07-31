@@ -1,20 +1,27 @@
 # 1. Client — call an HTTP backend
 
-Fetch data from an HTTP backend and print it. The response binds directly to typed records — no manual JSON parsing.
+Fetch data from an HTTP backend and print it. Two calls: `GET /orders/1001` (single order) and `GET /orders` (list).
 
-This sample makes two calls:
+## Steps
 
-- `GET /orders/1001` — a single order.
-- `GET /orders` — the full list, iterated and printed.
-
-## Endpoints
+### 1. Start the orders backend
 
 ```
-GET http://localhost:9090/orders/1001
-GET http://localhost:9090/orders
+cd backends/orders && bal run
 ```
 
-## Sample response (single order)
+Runs on `http://localhost:9090`.
+
+### 2. Create the Ballerina package
+
+```
+bal new automation
+cd automation
+```
+
+### 3. Generate the `Order` record
+
+`GET /orders/1001` returns:
 
 ```json
 {
@@ -30,26 +37,25 @@ GET http://localhost:9090/orders
 }
 ```
 
-## Set up
+Copy the sample JSON payload, and with a `.bal` file open, run the VS Code Ballerina command **Paste JSON as Record**. Rename the outer record to `Order`.
 
-```
-bal new automation
-```
+### 4. Implement the logic
 
-Use the sample response above with the VS Code Ballerina extension's **Paste JSON as Record** command, with a `.bal` file open to generate the record types. Rename the outer record to `Order`. Then implement the logic in a `main` function that fetches the order by order ID `1001`.
+Implement the logic to retrieve the order by ID `1001` as a path parameter.
 
-Then use the graphical view to retrieve all orders, specify **`/orders`** as the path.
+### 5. Add the list-fetch using the flow view
+
+Extend `main` with a second call — `GET /orders` — built visually in VS Code's flow view instead of typed by hand.
 
 ![Use client flow](gifs/use_client_flow.gif)
 
-## Run
+### 6. Run
 
 ```
-cd backends/orders && bal run       # terminal 1
-cd 01-client && bal run             # terminal 2
+bal run
 ```
 
-## Expected output
+Expected output:
 
 ```
 Order 1001 for Customer Alice Perera of Total value $39.98
@@ -58,9 +64,9 @@ Order 1002 for Customer Bob Silva of Total value $149.99
 ...
 ```
 
-The first line is the single-order fetch; the rest come from iterating the list.
+The first line is the single-order fetch from step 4; the rest come from iterating the list built in step 5.
 
 ## Next
 
-- Sample 2 — same job, but the response typed as raw `json`, and a second variant using XML from the customers backend.
-- Sample 3 — same job again, but the client and record types are generated from an OpenAPI spec (no hand-written records at all).
+- Sample 2 — the same fetch, with the response typed as raw `json`, and a second variant using XML from the customers backend.
+- Sample 3 — the same fetch, with the client and record types generated from an OpenAPI spec.

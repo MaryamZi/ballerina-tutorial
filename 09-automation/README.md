@@ -2,18 +2,57 @@
 
 Fetch data from one service, transform it, forward it to another. Two HTTP clients, one orchestrating function that can run on a schedule or manual trigger.
 
-- **Fetch**: `http:Client` against the orders backend (sample 1).
-- **Map**: `toSummary(Order)` expression-bodied function (data mapper — sample 5).
-- **Forward**: `http:Client` POST to the reports backend.
+- **Fetch** — sample 1 (`http:Client`)
+- **Map** — sample 5 (data mapper)
+- **Forward** — a second `http:Client`
 
-## Endpoints
+## Steps
+
+### 1. Start both backends
 
 ```
-GET  http://localhost:9090/orders?date=YYYY-MM-DD    (orders backend)
-POST http://localhost:9091/reports/summaries         (reports backend)
+cd backends/orders && bal run     # terminal 1 — port 9090
+cd backends/reports && bal run    # terminal 2 — port 9091
 ```
 
-## Sample POST body
+### 2. Create the Ballerina package
+
+```
+bal new automation
+cd automation
+```
+
+### 3. Configure the endpoints
+
+Copy `Config.toml.example` to `Config.toml`:
+
+```toml
+ordersEP = "http://localhost:9090"
+reportsEP = "http://localhost:9091"
+```
+
+### 4. Define the input and output records
+
+`Order` (input) matches the orders backend response — use **Paste JSON as Record** on sample 1's payload if starting from scratch.
+
+`OrderSummary` (output) — the shape POSTed to the reports backend:
+
+```ballerina
+type OrderItem record {|
+    string name;
+    int quantity;
+|};
+
+type OrderSummary record {|
+    string orderRef;
+    string customer;
+    decimal amount;
+    OrderItem[] items;
+    string status;
+|};
+```
+
+Corresponding JSON on the wire:
 
 ```json
 [
@@ -21,38 +60,31 @@ POST http://localhost:9091/reports/summaries         (reports backend)
     "orderRef": "1001",
     "customer": "Alice Perera",
     "amount": 39.98,
-    "items": [
-      { "name": "Widget", "quantity": 2 }
-    ],
+    "items": [ { "name": "Widget", "quantity": 2 } ],
     "status": "COMPLETED"
   }
 ]
 ```
 
-## Config.toml
+### 5. Write the mapping
 
-```toml
-ordersEP = "http://localhost:9090"
-reportsEP = "http://localhost:9091"
-```
+`toSummary(Order) returns OrderSummary` — an expression-bodied function that projects each order into the leaner summary shape. See sample 5 for the data-mapper walk-through.
 
-## Run
-
-Start both backends:
+### 6. Wire the flow in `main(string date)`
 
 ```
-cd backends/orders && bal run     # terminal 1
-cd backends/reports && bal run    # terminal 2
+Order[]         ← ordersClient->/orders(date = date)
+OrderSummary[]  ← query expression calling toSummary
+                → reportsClient->/reports/summaries.post(summaries)
 ```
 
-Then run the automation with a date argument:
+### 7. Run
 
 ```
-cd 09-automation
 bal run -- 2026-07-29
 ```
 
-## Expected output
+Expected output:
 
 ```
 Posted 7 order summaries for 2026-07-29.

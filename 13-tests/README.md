@@ -1,63 +1,71 @@
 # 13. Tests — unit-test a mapper, mock a client, exercise a service
 
-A small service (`GET /summaries?date=…`) that fetches orders from a backend, maps them to a leaner shape, and returns the list. Three tests exercise it at three layers:
+A simple service (`GET /summaries?date=…`) that fetches orders from a backend, maps them to a leaner shape, and returns the list. Three tests exercise it at three layers:
 
-1. **Pure** — `testTransformToSummary` exercises `toSummary(Order)` directly. No HTTP, no mocking.
-2. **With a mocked client** — `testFetchAndTransform` swaps out the HTTP client, feeds canned orders in, checks the mapping output.
-3. **Through the service** — `testSummariesService` hits the running listener with a plain `http:Client`. The internal `ordersClient` is still mocked, so no orders backend is needed.
+1. **Function test** — `toSummary(Order)` in isolation. No HTTP, no mocking.
+2. **With a mocked client** — `fetchAndTransform(date)` against a mocked `ordersClient`.
+3. **Through the service** — an `http:Client` hits the running listener; the mock is still in effect inside.
 
-## What makes it testable
+## Steps
 
-- Fetch + map lives in one function — `fetchAndTransform(string date) returns OrderSummary[]|error` — that can be called directly or from the service resource.
-- The HTTP client is built by `initializeOrdersClient()`. The test framework replaces this function with one that returns a mock.
-- The service resource is a thin wrapper over `fetchAndTransform` — nothing to test in the resource itself beyond the dispatch path, which the third test covers.
+### 1. Create the Ballerina package
 
-## Test data
+```
+bal new summaries_service
+cd summaries_service
+```
+
+### 2. Structure the code for testability
+
+Copy the contents of the `service.bal` file.
+
+Note the following changes from previous examples:
+
+- Extract `fetchAndTransform(string date) returns OrderSummary[]|error` so the fetch + map is one function callable from tests or the service resource.
+- Wrap client construction in `initializeOrdersClient()` — the test framework replaces this function with one that returns a mock.
+
+### 3. Write test data
 
 Module-level values in `tests/tests.bal`:
 
 ```ballerina
-final readonly & Order[] mockOrders = [
-    {id: 1234, date: "2026-07-29", customerId: "C001", customerName: "John Doe", status: "Shipped",
-     items: [
-         {productId: "P001", name: "Product 1", quantity: 2, unitPrice: 10.0},
-         {productId: "P002", name: "Product 2", quantity: 1, unitPrice: 20.0}
-     ], total: 40.0},
-    {id: 2212, date: "2026-07-29", customerId: "C002", customerName: "Jane Smith", status: "Pending",
-     items: [{productId: "P003", name: "Product 3", quantity: 3, unitPrice: 15.0}], total: 45.0}
-];
-
-final readonly & OrderSummary[] expectedSummaries = [
-    {orderRef: "1234", customer: "John Doe", amount: 40.0, lineCount: 2, status: "Shipped"},
-    {orderRef: "2212", customer: "Jane Smith", amount: 45.0, lineCount: 1, status: "Pending"}
-];
+final readonly & Order[] mockOrders = [ ... ];
+final readonly & OrderSummary[] expectedSummaries = [ ... ];
 ```
 
-## Mocking the client
+### 4. Test the mapper — no HTTP, no mock
 
-Replace `initializeOrdersClient()` with a function that returns a mock:
+```ballerina
+@test:Config
+function testTransformToSummary() {
+    OrderSummary actual = toSummary(sampleOrder);
+    test:assertEquals(actual, expectedSummary);
+}
+```
+
+### 5. Mock the client and test `fetchAndTransform`
+
+Replace `initializeOrdersClient()` with a function that returns a mock, then stub the resource call per test:
 
 ```ballerina
 @test:Mock { functionName: "initializeOrdersClient" }
 function getMockClient() returns http:Client|error => test:mock(http:Client);
+
+@test:Config
+function testFetchAndTransform() returns error? {
+    test:prepare(ordersClient).whenResource("::orders").onMethod("get").thenReturn(mockOrders);
+    OrderSummary[] actual = check fetchAndTransform(date);
+    test:assertEquals(actual, expectedSummaries);
+}
 ```
 
-Per-test, stub the resource call:
+### 6. Test the service end-to-end
 
-```ballerina
-test:prepare(ordersClient)
-    .whenResource("::orders")
-    .onMethod("get")
-    .thenReturn(mockOrders);
-```
-
-## Exercising the service
-
-`bal test` starts the service's listener on `servicePort`, so a test can create an `http:Client` and drive the endpoint directly:
+`bal test` starts the listener on `servicePort`. Create an `http:Client` in the test and drive the endpoint. The mocked `ordersClient` is still in effect inside the service, so no real orders backend is needed:
 
 ```ballerina
 @test:Config
-public function testSummariesService() returns error? {
+function testSummariesService() returns error? {
     test:prepare(ordersClient).whenResource("::orders").onMethod("get").thenReturn(mockOrders);
 
     http:Client serviceClient = check new (string `http://localhost:${servicePort}`);
@@ -66,7 +74,19 @@ public function testSummariesService() returns error? {
 }
 ```
 
-The `ordersClient` mock is still in effect inside the service, so this exercises the full dispatch + resource + fetch + map path without a real orders backend.
+### 7. Run
+
+```
+bal test
+```
+
+For an HTML report + code coverage:
+
+```
+bal test --test-report --code-coverage
+```
+
+Report opens at `target/report/index.html`.
 
 ## Alternatives to `test:mock`
 
@@ -104,17 +124,3 @@ ordersEP = "http://localhost:9096"
 ```
 
 Trade-off: exercises the full HTTP stack (serialization, network hop), but slower and adds a listener to the test process.
-
-## Run
-
-```
-bal test
-```
-
-For an HTML report + code coverage:
-
-```
-bal test --test-report --code-coverage
-```
-
-Report opens at `target/report/index.html`.

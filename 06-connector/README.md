@@ -1,17 +1,35 @@
 # 6. Connector — send an email via Gmail
 
-Send a message through the `ballerinax/googleapis.gmail` connector. `main.bal` shows the minimum: initialize the client, call `->/users/me/messages/send.post(...)`. The extended example below wires the same call into the automation flow — fetching orders and sending a summary.
+Send a message through the `ballerinax/googleapis.gmail` connector. `main.bal` shows the minimum: initialize the client and call `->/users/me/messages/send.post(...)`.
 
-To keep the tutorial runnable without real Google credentials, `backends/gmail-mock/` impersonates the Gmail message-send endpoint (`POST /users/me/messages/send`) and OAuth token refresh (`POST /oauth2/token`). Pointing the connector at a mock is a matter of overriding its `serviceUrl` — the flip to real Gmail is one config change.
+To keep the tutorial runnable without real Google credentials, `backends/gmail-mock/` mocks the Gmail message-send endpoint (`POST /users/me/messages/send`) and OAuth token refresh (`POST /oauth2/token`). Pointing the connector at the mock is a matter of overriding its `serviceUrl` — the flip to real Gmail is one config change.
 
-## Endpoints used
+## Steps
+
+### 1. Start the Gmail mock
 
 ```
-POST http://localhost:9092/users/me/messages/send         (gmail-mock)
-POST http://localhost:9092/oauth2/token                   (gmail-mock, called by the connector's OAuth refresh)
+cd backends/gmail-mock && bal run
 ```
 
-## Config.toml
+Serves the message-send endpoint on port 9092.
+
+### 2. Create the Ballerina package
+
+```
+bal new connector
+cd connector
+```
+
+Add the import — `bal build` resolves the dependency from Central on the next build:
+
+```ballerina
+import ballerinax/googleapis.gmail;
+```
+
+### 3. Configure the connector
+
+Copy `Config.toml.example` to `Config.toml`:
 
 ```toml
 gmailEP = "http://localhost:9092"
@@ -24,27 +42,48 @@ toEmail = "test@example.com"
 
 The mock accepts any credential values.
 
-## Run
+### 4. Initialize the client
 
-Start the gmail mock:
+Point the client at the mock's `serviceUrl`. Pass the OAuth config as the auth field:
+
+```ballerina
+final gmail:Client gmailClient = check new (
+    {auth: {refreshToken, clientId, clientSecret, refreshUrl}},
+    gmailEP
+);
+```
+
+### 5. Send a message from `main`
+
+```ballerina
+gmail:Message message = check gmailClient->/users/me/messages/send.post({
+    to: [toEmail],
+    subject: "Hello from Ballerina",
+    bodyInText: "Sent via the ballerinax/googleapis.gmail connector."
+});
+```
+
+### 6. Run
 
 ```
-cd backends/gmail-mock && bal run   # terminal 1
-```
-
-Then run:
-
-```
-cd 06-connector
 bal run
+```
+
+Output:
+
+```
 Sent message, Message ID: mock-message-id
 ```
 
 The mock logs the incoming send. The email body arrives as a base64-encoded RFC 5322 payload — the `raw` field of the message body — that's what Gmail's API accepts.
 
+## Switching to real Gmail
+
+Drop the `gmailEP` and `refreshUrl` overrides from `Config.toml` (letting them default to Google's endpoints) and fill in real OAuth credentials from Google Cloud Console. No code change.
+
 ## Extended example — send an order summary
 
-Combines the connector call with an orders fetch, similar to the automation flow. Uses two clients (`http:Client` for orders, `gmail:Client` for send), builds an email body from the fetched orders, and sends.
+Wire the connector call into an automation flow — fetch orders, build a summary, send. Uses two clients (`http:Client` for orders, `gmail:Client` for send).
 
 ```ballerina
 import ballerina/http;
@@ -100,7 +139,3 @@ function buildOrderSummary(Order[] orders) returns string =>
 ```
 
 Run with a date argument (`bal run -- 2026-07-29`) after also starting the orders backend.
-
-## Switching to real Gmail
-
-Drop the `gmailEP` and `refreshUrl` overrides from `Config.toml` (letting them default to Google's endpoints) and fill in real OAuth credentials from Google Cloud Console. No code change.
