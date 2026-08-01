@@ -1,6 +1,6 @@
 # Ballerina tutorial
 
-A tour of Ballerina through thirteen small samples — from a first HTTP client to a Kafka consumer, with data mapping, resilience, connectors, databases, code-gen, an isolated service, and tests along the way. Every sample can be run standalone; each has its own README.
+A tour of Ballerina through fourteen small samples — from a first HTTP client to a Kubernetes-ready service, with data mapping, resilience, connectors, databases, code-gen, an isolated service, tests, and deployment along the way. Every sample can be run standalone; each has its own README.
 
 ## Samples
 
@@ -19,6 +19,7 @@ A tour of Ballerina through thirteen small samples — from a first HTTP client 
 | 11 | [`11-service-isolated`](11-service-isolated) | Sample 10 with `isolated` + `lock` blocks — the isolation warnings go away, resources can run concurrently. |
 | 12 | [`12-events`](12-events) | Kafka consumer service — typed payload binding on each incoming record. |
 | 13 | [`13-tests`](13-tests) | A small `/summaries` service exercised at three layers — pure mapper test, mocked-client test, and service test with an `http:Client`. |
+| 14 | [`14-deployment`](14-deployment) | Sample 11 packaged for deployment — `bal build` emits a Docker image and Kubernetes manifests, no hand-written YAML. |
 
 ## Mock backends
 
@@ -28,7 +29,7 @@ A tour of Ballerina through thirteen small samples — from a first HTTP client 
 - `backends/reports` — accepts summaries (port 9091). `POST /reports/summaries` logs each summary. Used by sample 9.
 - `backends/customers` — customers (port 9096). `GET /customers` list, `GET /customers/{customerId}` single. **XML**, used by sample 2.
 - `backends/flaky` — flaky endpoint (port 9097). `GET /flaky/orders` returns 503 twice then 200. Used by sample 4.
-- `backends/gmail-mock` — Gmail impersonator (port 9092). Used by sample 6.
+- `backends/gmail-mock` — Gmail impersonator (port 9099). Used by sample 6.
 
 Start each with `bal run` from its directory. Only start the ones the sample you're running needs.
 

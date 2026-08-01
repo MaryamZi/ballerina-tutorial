@@ -1,0 +1,4 @@
+[container.image]
+repository = "tutorial"
+name = "products-deployment"
+tag = "0.1.0"

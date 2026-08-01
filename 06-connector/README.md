@@ -32,8 +32,8 @@ import ballerinax/googleapis.gmail;
 Copy `Config.toml.example` to `Config.toml`:
 
 ```toml
-gmailEP = "http://localhost:9092"
-refreshUrl = "http://localhost:9092/oauth2/token"
+gmailEP = "http://localhost:9099"
+refreshUrl = "http://localhost:9099/oauth2/token"
 refreshToken = "dummy-refresh"
 clientId = "dummy-client"
 clientSecret = "dummy-secret"

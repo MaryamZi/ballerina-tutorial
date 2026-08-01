@@ -1,7 +1,7 @@
 import ballerina/http;
 import ballerina/log;
 
-configurable int port = 9092;
+configurable int port = 9099;
 
 public type MessageResponse record {|
     string id;
